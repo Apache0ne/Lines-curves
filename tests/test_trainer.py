@@ -132,7 +132,6 @@ def test_exact_resume_matches_uninterrupted_training(tmp_path: Path):
     interrupted = tmp_path / "full" / "stage1" / "epoch_000.pt"
     resume_checkpoint = resume_stage / "last.pt"
     shutil.copy2(interrupted, resume_checkpoint)
-    shutil.copy2(interrupted, resume_stage / "best.pt")
 
     resumed_config = copy.deepcopy(full_config)
     resumed_config["common"]["output_root"] = str(resume_root)
@@ -148,3 +147,27 @@ def test_exact_resume_matches_uninterrupted_training(tmp_path: Path):
     assert uninterrupted["global_step"] == resumed["global_step"]
     for name, tensor in uninterrupted["model"].items():
         assert torch.equal(tensor, resumed["model"][name]), name
+
+
+def test_completed_checkpoint_copied_to_new_output_exports_best(tmp_path: Path):
+    import copy
+    import shutil
+
+    _fake_teed_checkpoint(tmp_path / "fake_teed.pth")
+    config = _base_config(tmp_path, None)
+    config["common"]["output_root"] = str(tmp_path / "source")
+    train_stage(config, 1)
+
+    copied = tmp_path / "copied_last.pt"
+    shutil.copy2(tmp_path / "source" / "stage1" / "last.pt", copied)
+    restored_config = copy.deepcopy(config)
+    restored_config["common"]["output_root"] = str(tmp_path / "restored")
+    best = train_stage(restored_config, 1, resume=copied)
+
+    assert best.exists()
+    assert best.with_name("best.safetensors").exists()
+    assert best.with_name("best_fp16.safetensors").exists()
+    source = torch.load(copied, map_location="cpu", weights_only=False)["model"]
+    restored = torch.load(best, map_location="cpu", weights_only=False)["model"]
+    for name, tensor in source.items():
+        assert torch.equal(tensor, restored[name]), name
