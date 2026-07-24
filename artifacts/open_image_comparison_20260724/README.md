@@ -12,16 +12,25 @@ These photographs do not include edge/curve ground truth, so this is a visual co
 
 ## Compact comparison sheets
 
-![Sheet 1](comparison_sheet_01.webp)
+![Sheet 1](comparison_sheet_01_preview.svg)
 
-![Sheet 2](comparison_sheet_02.webp)
+![Sheet 2](comparison_sheet_02_preview.svg)
 
-![Sheet 3](comparison_sheet_03.webp)
+![Sheet 3](comparison_sheet_03_preview.svg)
 
-![Sheet 4](comparison_sheet_04.webp)
+![Sheet 4](comparison_sheet_04_preview.svg)
+
+## Sheet columns
+
+1. Source image
+2. Base TEED edge probability
+3. Stage 3 edge probability
+4. Absolute Base-versus-Stage-3 probability change
+5. Stage 3 curve probability
+6. Stage 3 curve overlay at threshold 0.65
 
 ## Inputs
 
 The distinct images are: astronaut, cameraman, coffee, coins, Chelsea the cat, motion-blurred clock, SpaceX rocket launch, horse silhouette, Hubble deep field, printed text, brick, grass, gravel, microscopy cell, immunohistochemistry, retinal microaneurysms, and human retina. Seven additional crops test fine curved structures and local detail.
 
-The corresponding `skimage.data` function documentation states CC0, public-domain, or no-known-copyright-restrictions status for the originals. Full-resolution PNG sheets and exact metrics were generated in the execution workspace; `metrics.json` in this directory contains the per-image output statistics.
+The corresponding `skimage.data` function documentation states CC0, public-domain, or no-known-copyright-restrictions status for the originals. See [`source_manifest.md`](source_manifest.md). Full-resolution PNG sheets and complete per-image metrics were generated in the execution workspace; `metrics.json` records the execution identity and thresholds.
