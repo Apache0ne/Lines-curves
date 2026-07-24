@@ -1,0 +1,46 @@
+{
+  "checkpoint": {
+    "filename": "7_model.pth",
+    "sha256": "d0109e7f40e7d9f1f495d34947eb08167e8fbb0a13b4e6ab3121261fb8d5a416",
+    "parameters": 58910,
+    "loaded_tensors": 36
+  },
+  "pilot": {
+    "model_parameters": 67980,
+    "curve_specific_trainable_stage1": 9070,
+    "precision": "FP32",
+    "training_resolution": 64,
+    "stage1_steps": 60,
+    "stage2_steps": 80,
+    "stage3_steps": 40,
+    "note": "CPU pilot using exact procedural curve/edge labels; not the full BIPED+BSDS500+CurveML curriculum.",
+    "final_checkpoint_sha256": "132ff6716fdacbc5845d575d5e025e8ef46ec608a823d16f3d341be93941762c",
+    "final_checkpoint_bytes": 292733
+  },
+  "held_out_metrics": {
+    "baseline": {
+      "curve_f1": 0.33302174824858055,
+      "curve_threshold": 0.45,
+      "edge_f1": 0.4274344434204773,
+      "edge_threshold": 0.45
+    },
+    "stage1": {
+      "curve_f1": 0.4279130430327024,
+      "curve_threshold": 0.5,
+      "edge_f1": 0.4274344434204773,
+      "edge_threshold": 0.45
+    },
+    "stage2": {
+      "curve_f1": 0.5525547778797297,
+      "curve_threshold": 0.65,
+      "edge_f1": 0.6590395900562638,
+      "edge_threshold": 0.65
+    },
+    "stage3": {
+      "curve_f1": 0.5503178479410981,
+      "curve_threshold": 0.65,
+      "edge_f1": 0.6600552244896708,
+      "edge_threshold": 0.6
+    }
+  }
+}
