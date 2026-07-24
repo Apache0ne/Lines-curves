@@ -23,3 +23,19 @@ def test_prepare_biped_official_layout(tmp_path: Path):
     assert len(list((output / "train" / "images").glob("*.png"))) == 1
     assert len(list((output / "train" / "edges").glob("*.png"))) == 1
     assert len(list((output / "train" / "curves").glob("*.png"))) == 1
+
+
+def test_nested_biped_zip_extraction(tmp_path: Path):
+    import zipfile
+
+    from scripts.colab_setup import resolve_biped_root
+
+    package = tmp_path / "kaggle"
+    package.mkdir()
+    archive_path = package / "BIPEDv2.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("edges/imgs/train/rgbr/real/sample.jpg", b"image")
+        archive.writestr("edges/edge_maps/train/rgbr/real/sample.png", b"edge")
+    extracted = resolve_biped_root(package, tmp_path / "extracted")
+    assert (extracted / "edges/imgs/train/rgbr/real/sample.jpg").exists()
+    assert (extracted / "edges/edge_maps/train/rgbr/real/sample.png").exists()
