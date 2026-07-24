@@ -46,11 +46,18 @@ subprocess.run([
 
 Do not start training unless this prints `PREFLIGHT_STATUS=PASS`.
 
-## 4. Run the full curriculum
+## 4. Run or recover the full curriculum
 
 ```python
-subprocess.run([sys.executable, "train_all.py", "--config", "configs/colab.yaml"], check=True)
+subprocess.run([
+    sys.executable,
+    "train_all.py",
+    "--config", "configs/colab.yaml",
+    "--auto-resume",
+], check=True)
 ```
+
+`--auto-resume` resumes incomplete stages from `last.pt` and skips stages already completed in the configured output root.
 
 The final files are:
 
@@ -66,7 +73,7 @@ Every stage also keeps `last.pt`, `epoch_XXX.pt`, and `metrics.jsonl`.
 
 Mount Drive and change `common.output_root` before preflight/training. The included notebook performs this edit automatically when `USE_GOOGLE_DRIVE = True`.
 
-## Resume an interrupted stage
+## Resume one stage manually
 
 ```python
 subprocess.run([
