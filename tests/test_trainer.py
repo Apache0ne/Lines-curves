@@ -111,3 +111,40 @@ def test_three_stage_checkpoint_handoff(tmp_path: Path):
     model.load_state_dict(final_state, strict=True)
     output = model(torch.randn(1, 3, 32, 32))
     assert output["edge"].shape == output["curve"].shape == (1, 1, 32, 32)
+
+
+def test_exact_resume_matches_uninterrupted_training(tmp_path: Path):
+    import copy
+    import shutil
+
+    _fake_teed_checkpoint(tmp_path / "fake_teed.pth")
+    natural_root = tmp_path / "natural"
+    _write_natural(natural_root)
+
+    full_config = _base_config(tmp_path, natural_root)
+    full_config["common"]["output_root"] = str(tmp_path / "full")
+    full_config["stage1"]["epochs"] = 2
+    train_stage(full_config, 1)
+
+    resume_root = tmp_path / "resumed"
+    resume_stage = resume_root / "stage1"
+    resume_stage.mkdir(parents=True)
+    interrupted = tmp_path / "full" / "stage1" / "epoch_000.pt"
+    resume_checkpoint = resume_stage / "last.pt"
+    shutil.copy2(interrupted, resume_checkpoint)
+    shutil.copy2(interrupted, resume_stage / "best.pt")
+
+    resumed_config = copy.deepcopy(full_config)
+    resumed_config["common"]["output_root"] = str(resume_root)
+    train_stage(resumed_config, 1, resume=resume_checkpoint)
+
+    uninterrupted = torch.load(
+        tmp_path / "full" / "stage1" / "last.pt", map_location="cpu", weights_only=False
+    )
+    resumed = torch.load(
+        resume_root / "stage1" / "last.pt", map_location="cpu", weights_only=False
+    )
+    assert uninterrupted["epoch"] == resumed["epoch"] == 1
+    assert uninterrupted["global_step"] == resumed["global_step"]
+    for name, tensor in uninterrupted["model"].items():
+        assert torch.equal(tensor, resumed["model"][name]), name
