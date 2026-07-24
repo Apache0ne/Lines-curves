@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.prepare_data import prepare_biped, prepare_bsds
+from lines_curves.synthetic import discover_point_files
+
 
 
 def _safe_extract_zip(archive_path: Path, destination: Path) -> None:
@@ -56,7 +58,7 @@ def clone_once(url: str, destination: Path, recurse_submodules: bool = False) ->
         return
     command = ["git", "clone", "--depth=1"]
     if recurse_submodules:
-        command.append("--recurse-submodules")
+        command.extend(["--recurse-submodules", "--shallow-submodules"])
     command.extend([url, str(destination)])
     subprocess.run(command, check=True)
 
@@ -94,14 +96,14 @@ def main() -> None:
     if args.with_curveml:
         curveml_output = Path(args.curveml_output).expanduser().resolve()
         clone_once("https://gitlab.com/4ndr3aR/CurveML.git", curveml_output, recurse_submodules=True)
-        csv_files = sorted(curveml_output.rglob("*.csv"))
+        csv_files = discover_point_files(curveml_output)
         manifest = curveml_output / "point_manifest.txt"
         manifest.write_text(
             "\n".join(str(path.relative_to(curveml_output)) for path in csv_files)
             + ("\n" if csv_files else ""),
             encoding="utf-8",
         )
-        print(f"CURVEML_CSV_COUNT={len(csv_files)}")
+        print(f"CURVEML_POINT_SET_COUNT={len(csv_files)}")
         print(f"CURVEML_MANIFEST={manifest}")
 
     print(f"NATURAL_OUTPUT={natural_output}")
