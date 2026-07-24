@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import shutil
 import subprocess
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from lines_curves.synthetic import discover_point_files
 
 
 def main() -> None:
@@ -14,10 +21,10 @@ def main() -> None:
     args = parser.parse_args()
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
-    if output.exists() and any(output.iterdir()):
+    already_present = output.exists() and any(output.iterdir())
+    if already_present:
         print(f"CURVEML_ALREADY_PRESENT={output}")
-        return
-    if args.source:
+    elif args.source:
         source = Path(args.source).expanduser().resolve()
         if not source.exists():
             raise FileNotFoundError(source)
@@ -29,14 +36,15 @@ def main() -> None:
                 "clone",
                 "--depth=1",
                 "--recurse-submodules",
+                "--shallow-submodules",
                 "https://gitlab.com/4ndr3aR/CurveML.git",
                 str(output),
             ],
             check=True,
         )
-    else:
+    elif not already_present:
         raise SystemExit("Use --source PATH or --clone")
-    csv_files = sorted(output.rglob("*.csv"))
+    csv_files = discover_point_files(output)
     manifest = output / "point_manifest.txt"
     manifest.write_text(
         "\n".join(str(path.relative_to(output)) for path in csv_files) + ("\n" if csv_files else ""),
@@ -45,7 +53,7 @@ def main() -> None:
     csv_count = len(csv_files)
     print(f"CURVEML_ROOT={output}")
     print(f"CURVEML_MANIFEST={manifest}")
-    print(f"CURVEML_CSV_COUNT={csv_count}")
+    print(f"CURVEML_POINT_SET_COUNT={csv_count}")
     if csv_count == 0:
         print("WARNING: no CSV point sets found; procedural curve generation will remain active.")
 
