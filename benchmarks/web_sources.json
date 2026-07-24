@@ -1,0 +1,29 @@
+{
+  "benchmark_name": "Wikimedia Commons open-image TEED benchmark",
+  "images": [
+    {"id":"01_spiral_staircase_historic","filename":"SpiralstaircaseSLT3b18940u.jpg","title":"Historic spiral staircase","category":"architecture-curves","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:SpiralstaircaseSLT3b18940u.jpg"},
+    {"id":"02_curved_road_korea","filename":"Curved road in South Korea.jpg","title":"Curved road in South Korea","category":"roads","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Curved_road_in_South_Korea.jpg"},
+    {"id":"03_white_bicycle","filename":"White bicycle.jpg","title":"White bicycle","category":"objects","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:White_bicycle.jpg"},
+    {"id":"04_seashell_unsplash","filename":"Seashell (Unsplash).jpg","title":"Seashell on shoreline","category":"natural-spirals","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Seashell_(Unsplash).jpg"},
+    {"id":"05_gold_spiral_shells","filename":"Spiral seashells painted gold.jpg","title":"Gold spiral seashells","category":"natural-spirals","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Spiral_seashells_painted_gold.jpg"},
+    {"id":"06_library_spiral_staircase","filename":"Spiral staircase State Library of Victoria 20180724-003.jpg","title":"Library spiral staircase","category":"architecture-curves","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Spiral_staircase_State_Library_of_Victoria_20180724-003.jpg"},
+    {"id":"07_winding_road","filename":"Winding road.jpg","title":"Winding coastal road","category":"roads","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Winding_road.jpg"},
+    {"id":"08_lavender_flower","filename":"Lavender Flower Closeup.jpg","title":"Lavender flower close-up","category":"organic-detail","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Lavender_Flower_Closeup.jpg"},
+    {"id":"09_chive_flower","filename":"Chive flower close-up.jpg","title":"Chive flower close-up","category":"organic-detail","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Chive_flower_close-up.jpg"},
+    {"id":"10_bridge_arch","filename":"Bridge-arch.jpg","title":"Bridge arch","category":"architecture-curves","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Bridge-arch.jpg"},
+    {"id":"11_manhattan_bridge_arch","filename":"Manhattan Bridge arch.jpg","title":"Manhattan Bridge arch","category":"architecture-curves","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Manhattan_Bridge_arch.jpg"},
+    {"id":"12_tree_branches","filename":"Tree branches'.jpg","title":"Tree branches","category":"organic-detail","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Tree_branches%27.jpg"},
+    {"id":"13_fallen_branch","filename":"Fallen Tree Branch.jpg","title":"Fallen tree branch","category":"organic-detail","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Fallen_Tree_Branch.jpg"},
+    {"id":"14_fractal_spiral","filename":"Fractal spiral.jpg","title":"Fractal spiral","category":"abstract-curves","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Fractal_spiral.jpg"},
+    {"id":"15_seventeen_arch_bridge","filename":"Seventeen Arch Bridge.jpg","title":"Seventeen Arch Bridge","category":"architecture-curves","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Seventeen_Arch_Bridge.jpg"},
+    {"id":"16_railway_track","filename":"Railway Track.jpg","title":"Railway track","category":"perspective-lines","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Railway_Track.jpg"},
+    {"id":"17_building_facade","filename":"A building facade.jpg","title":"Building facade","category":"straight-line-negative","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:A_building_facade.jpg"},
+    {"id":"18_guitar_closeup","filename":"Close-up of a guitar.jpg","title":"Guitar close-up","category":"objects","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Close-up_of_a_guitar.jpg"},
+    {"id":"19_swan","filename":"Swan3.jpg","title":"Swan","category":"organic-contours","license":"Public Domain","source_page":"https://commons.wikimedia.org/wiki/File:Swan3.jpg"},
+    {"id":"20_train_tracks","filename":"Train Tracks (211855873).jpeg","title":"Train tracks","category":"perspective-lines","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Train_Tracks_(211855873).jpeg"},
+    {"id":"21_not_playing_guitar","filename":"Not Playing The Guitar.jpg","title":"Guitar and person","category":"mixed-object-contours","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Not_Playing_The_Guitar.jpg"},
+    {"id":"22_hong_kong_facade","filename":"Building Facade in Hong Kong.jpg","title":"Hong Kong building facade","category":"straight-line-negative","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Building_Facade_in_Hong_Kong.jpg"},
+    {"id":"23_black_swan","filename":"Black-Swan-20071101-005.jpg","title":"Black swan","category":"organic-contours","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Black-Swan-20071101-005.jpg"},
+    {"id":"24_windows_unsplash","filename":"Staring out building windows (Unsplash).jpg","title":"Building windows","category":"straight-line-negative","license":"CC0 1.0","source_page":"https://commons.wikimedia.org/wiki/File:Staring_out_building_windows_(Unsplash).jpg"}
+  ]
+}
