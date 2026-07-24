@@ -153,6 +153,7 @@ def _find_boundary_arrays(value: Any, expected_hw: tuple[int, int]) -> list[np.n
 
 
 def prepare_bsds(root: Path, output_root: Path, include_test: bool = False) -> int:
+    output_root.mkdir(parents=True, exist_ok=True)
     image_base_candidates = [root / "data" / "images", root / "BSDS500" / "data" / "images"]
     gt_base_candidates = [root / "data" / "groundTruth", root / "BSDS500" / "data" / "groundTruth"]
     image_base = next((path for path in image_base_candidates if path.exists()), None)
