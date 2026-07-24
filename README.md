@@ -15,26 +15,33 @@ The edge branch keeps the original TEED parameter names so the public `5_model.p
 | 2 | Entire model | CurveML/procedural curves + BIPED + BSDS500 | 6 epochs |
 | 3 | Entire model, low LR | Natural BIPED + BSDS500 records only | 2 epochs |
 
-Stage 1 automatically downloads the approximately 250 KB public TEED checkpoint from `fal/teed` on Hugging Face unless `common.teed_checkpoint` is set. It refuses to continue if too few compatible weights load.
+Stage 1 automatically downloads the approximately 250 KB public TEED checkpoint from `fal/teed` on Hugging Face unless `common.teed_checkpoint` is set. It refuses to continue if too few compatible tensors load.
 
 ## Model size
 
 The default model has **67,980 parameters**. The TEED-compatible shared encoder and edge branch contain **58,910 parameters**; the curve decoder and curve-context block add **9,070 parameters**.
 
-A validated export from the default architecture is approximately:
+A default-architecture export is approximately:
 
 - `best.safetensors`: 277,808 bytes (FP32)
 - `best_fp16.safetensors`: 141,840 bytes (FP16)
 
-The resumable `.pt` files are larger because they also contain optimizer, scheduler, scaler, configuration, and RNG state.
+The resumable `.pt` files are larger because they also contain optimizer, scheduler, scaler, configuration, and Python/NumPy/Torch/CUDA RNG state.
+
+## Colab notebook
+
+Open [`Lines_Curves_Training_Colab.ipynb`](Lines_Curves_Training_Colab.ipynb) or follow [`COLAB.md`](COLAB.md). The notebook performs clone/update, installation, optional Google Drive configuration, dataset setup, preflight, all three training stages, and export.
 
 ## Fast verification
 
 ```bash
 python -m pip install -r requirements.txt
+python -m compileall -q .
+pytest -q
 python scripts/smoke_test.py
-pytest -q  # includes a miniature Stage 1 -> 2 -> 3 checkpoint-handoff run
 ```
+
+The test suite includes architecture compatibility, odd image sizes, finite gradients, BIPED/BSDS path normalization, CurveML compressed point sets, pseudo-label selectivity, full miniature Stage 1→2→3 handoff, and exact interrupted-training resume.
 
 ## Data layout
 
@@ -62,9 +69,9 @@ python scripts/prepare_data.py \
   --clear
 ```
 
-Natural curve pseudo-labels are generated conservatively from annotated edges by measuring tangent change along traced contours. Synthetic curve targets are exact.
+Natural curve pseudo-labels are generated conservatively from annotated edges by measuring tangent change along traced contours. Straight contours are excluded; curved contours remain. Synthetic curve targets are exact.
 
-CurveML support accepts point-set files stored as `.csv` or `.csv.xz`. The manifest builder prioritizes `point_set_clean`/`point_cloud_clean` files so metadata CSVs and perturbed outlier sequences are not accidentally rendered as connected curves. Clone the official repository or copy an existing dataset directory:
+CurveML support accepts point-set files stored as `.csv` or `.csv.xz`. The manifest builder prioritizes `point_set_clean`/`point_cloud_clean` files so metadata CSVs and perturbed outlier sequences are not accidentally rendered as connected curves:
 
 ```bash
 python scripts/prepare_curveml.py --clone
@@ -80,7 +87,18 @@ If no usable CurveML point-set files are present, the built-in generator produce
 python scripts/colab_setup.py --with-curveml
 ```
 
-This downloads public BIPED data through KaggleHub, clones the BIDS BSDS500 mirror, derives natural curve pseudo-labels, and optionally clones CurveML. Dataset files are never committed to this repository.
+This downloads public BIPED data through KaggleHub, safely extracts the nested BIPED archive when present, clones the BIDS BSDS500 mirror, derives natural curve pseudo-labels, and optionally clones CurveML. Dataset files are never committed to this repository.
+
+## Preflight before training
+
+```bash
+python scripts/preflight.py \
+  --config configs/colab.yaml \
+  --download-teed \
+  --report outputs/preflight.json
+```
+
+Preflight validates all paths and stage values, counts natural and CurveML records, verifies the TEED checkpoint, checks the 67,980-parameter architecture, and runs one finite forward/backward sample for every stage. It exits nonzero on a blocking problem.
 
 ## Train
 
@@ -96,7 +114,18 @@ python train.py --stage 2 --config configs/colab.yaml
 python train.py --stage 3 --config configs/colab.yaml
 ```
 
-Checkpoints are written atomically as `best.pt` and `last.pt`. Each best model is also exported as compact `best.safetensors` and `best_fp16.safetensors` files. Stage 2 loads Stage 1's `best.pt`; Stage 3 loads Stage 2's `best.pt`. Metrics are appended to `metrics.jsonl`.
+Checkpoints are written atomically as `best.pt`, `last.pt`, and `epoch_XXX.pt`. Each best model is also exported as compact `best.safetensors` and `best_fp16.safetensors` files. Stage 2 loads Stage 1's `best.pt`; Stage 3 loads Stage 2's `best.pt`. Metrics are appended to `metrics.jsonl`.
+
+The default config enables deterministic mode. On the same hardware/software stack, an interrupted run can restore optimizer, scheduler, scaler, and all recorded RNG state:
+
+```bash
+python train.py \
+  --stage 1 \
+  --config configs/colab.yaml \
+  --resume outputs/stage1/last.pt
+```
+
+A completed `last.pt` copied into a new output directory is also accepted; the compact best exports are recreated if no epochs remain.
 
 ## Inference and export
 
@@ -105,4 +134,4 @@ python infer.py --checkpoint outputs/stage3/best.pt --input example.png
 python export.py --checkpoint outputs/stage3/best.pt --output outputs/teed_curves.onnx
 ```
 
-See [COLAB.md](COLAB.md) for a copy-paste Colab flow and [NOTICE.md](NOTICE.md) for upstream attribution and dataset terms.
+See [NOTICE.md](NOTICE.md) for upstream attribution and dataset terms.
