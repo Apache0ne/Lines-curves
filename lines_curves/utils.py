@@ -46,16 +46,26 @@ def append_jsonl(path: str | Path, row: dict[str, Any]) -> None:
         handle.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def binary_metrics(logits: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> dict[str, float]:
+def binary_counts(
+    logits: torch.Tensor, target: torch.Tensor, threshold: float = 0.5
+) -> tuple[int, int, int]:
     prediction = torch.sigmoid(logits) >= threshold
     target_b = target >= 0.5
-    tp = (prediction & target_b).sum().item()
-    fp = (prediction & ~target_b).sum().item()
-    fn = (~prediction & target_b).sum().item()
+    tp = int((prediction & target_b).sum().item())
+    fp = int((prediction & ~target_b).sum().item())
+    fn = int((~prediction & target_b).sum().item())
+    return tp, fp, fn
+
+
+def binary_metrics_from_counts(tp: int, fp: int, fn: int) -> dict[str, float]:
     precision = tp / max(tp + fp, 1)
     recall = tp / max(tp + fn, 1)
     f1 = 2 * precision * recall / max(precision + recall, 1e-12)
     return {"precision": precision, "recall": recall, "f1": f1}
+
+
+def binary_metrics(logits: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> dict[str, float]:
+    return binary_metrics_from_counts(*binary_counts(logits, target, threshold))
 
 
 def load_model_state(path: str | Path) -> dict[str, torch.Tensor]:
