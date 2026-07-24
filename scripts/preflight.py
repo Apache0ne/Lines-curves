@@ -71,6 +71,25 @@ def run_preflight(config_path: str | Path, download_teed: bool = False) -> dict[
         errors.append(f"common.workers must be an integer, got {workers!r}")
         workers = 0
 
+    threshold_values = common.get("validation_thresholds", [0.25, 0.35, 0.50, 0.65])
+    validation_thresholds: list[float] = []
+    if not isinstance(threshold_values, (list, tuple)):
+        errors.append("common.validation_thresholds must be a list of values within (0, 1)")
+    else:
+        for value in threshold_values:
+            try:
+                threshold = float(value)
+            except (TypeError, ValueError):
+                errors.append(f"Invalid validation threshold: {value!r}")
+                continue
+            if not 0.0 < threshold < 1.0:
+                errors.append(f"Validation threshold must be within (0, 1): {threshold}")
+            else:
+                validation_thresholds.append(threshold)
+        validation_thresholds = sorted(set(validation_thresholds))
+        if not validation_thresholds:
+            errors.append("common.validation_thresholds must contain at least one valid value")
+
     stage_rows: list[dict[str, Any]] = []
     for stage in (1, 2, 3):
         key = f"stage{stage}"
@@ -205,6 +224,7 @@ def run_preflight(config_path: str | Path, download_teed: bool = False) -> dict[
             "curveml_point_sets": len(point_bank),
         },
         "model": parameter_report,
+        "validation_thresholds": validation_thresholds,
         "checkpoint": checkpoint_report,
         "stages": stage_rows,
         "stage_smoke": stage_smoke,
