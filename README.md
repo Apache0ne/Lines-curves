@@ -19,14 +19,21 @@ Stage 1 automatically downloads the approximately 250 KB public TEED checkpoint 
 
 ## Model size
 
-The exact count is printed by `scripts/smoke_test.py`. The model remains in the tens-of-thousands-of-parameters range; the optional anisotropic curve-context block adds only depthwise and 1x1 convolutions.
+The default model has **67,980 parameters**. The TEED-compatible shared encoder and edge branch contain **58,910 parameters**; the curve decoder and curve-context block add **9,070 parameters**.
+
+A validated export from the default architecture is approximately:
+
+- `best.safetensors`: 277,808 bytes (FP32)
+- `best_fp16.safetensors`: 141,840 bytes (FP16)
+
+The resumable `.pt` files are larger because they also contain optimizer, scheduler, scaler, configuration, and RNG state.
 
 ## Fast verification
 
 ```bash
 python -m pip install -r requirements.txt
 python scripts/smoke_test.py
-pytest -q
+pytest -q  # includes a miniature Stage 1 -> 2 -> 3 checkpoint-handoff run
 ```
 
 ## Data layout
@@ -57,7 +64,7 @@ python scripts/prepare_data.py \
 
 Natural curve pseudo-labels are generated conservatively from annotated edges by measuring tangent change along traced contours. Synthetic curve targets are exact.
 
-CurveML support is flexible: every CSV with at least two numeric columns can be used as a point set. Clone the official repository or copy an existing dataset directory:
+CurveML support accepts point-set files stored as `.csv` or `.csv.xz`. The manifest builder prioritizes `point_set_clean`/`point_cloud_clean` files so metadata CSVs and perturbed outlier sequences are not accidentally rendered as connected curves. Clone the official repository or copy an existing dataset directory:
 
 ```bash
 python scripts/prepare_curveml.py --clone
@@ -65,7 +72,7 @@ python scripts/prepare_curveml.py --clone
 python scripts/prepare_curveml.py --source /path/to/CurveML
 ```
 
-If no usable CurveML CSV files are present, the built-in generator produces Bézier curves, arcs, ellipses, spirals, waves, and petal curves, with straight lines retained as hard negatives.
+If no usable CurveML point-set files are present, the built-in generator produces Bézier curves, arcs, ellipses, spirals, waves, and petal curves, with straight lines retained as hard negatives.
 
 ## Automatic Colab data setup
 
