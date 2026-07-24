@@ -29,6 +29,7 @@ def _write_config(path: Path, output: Path, natural: Path | None, fractions: tup
             "amp": False,
             "grad_clip": 1.0,
             "use_curve_context": True,
+            "validation_thresholds": [0.25, 0.35, 0.5, 0.65],
             "cache_root": str(path.parent / "cache"),
             "natural_root": str(natural) if natural else None,
             "curveml_root": str(path.parent / "curveml"),
@@ -88,3 +89,14 @@ def test_preflight_rejects_missing_required_natural_data(tmp_path: Path):
     report = run_preflight(config)
     assert report["status"] == "FAIL"
     assert any("needs natural training records" in error for error in report["errors"])
+
+
+def test_preflight_rejects_invalid_validation_thresholds(tmp_path: Path):
+    config = tmp_path / "config.yaml"
+    _write_config(config, tmp_path / "outputs", None, (1.0, 1.0, 1.0))
+    data = yaml.safe_load(config.read_text(encoding="utf-8"))
+    data["common"]["validation_thresholds"] = [0.0, 1.0, "bad"]
+    config.write_text(yaml.safe_dump(data), encoding="utf-8")
+    report = run_preflight(config)
+    assert report["status"] == "FAIL"
+    assert any("validation threshold" in error.lower() for error in report["errors"])
