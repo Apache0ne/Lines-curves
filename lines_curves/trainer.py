@@ -178,6 +178,20 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
             if torch.cuda.is_available() and payload.get("cuda_rng_state_all") is not None:
                 torch.cuda.set_rng_state_all(payload["cuda_rng_state_all"])
 
+            best_path = output_dir / "best.pt"
+            total_epochs = int(stage_cfg["epochs"])
+            if not best_path.exists():
+                if start_epoch >= total_epochs:
+                    # A completed checkpoint copied into a new output directory
+                    # is still a valid final model even when no more epochs run.
+                    atomic_torch_save(payload, best_path)
+                    _save_lightweight_weights(model, output_dir, "best")
+                else:
+                    # The original best checkpoint is unavailable in this new
+                    # directory. Force the first continued epoch to establish a
+                    # local best rather than returning a nonexistent path.
+                    best_f1 = float("-inf")
+
     for epoch in range(start_epoch, int(stage_cfg["epochs"])):
         train_dataset.set_epoch(epoch)
         model.train()
