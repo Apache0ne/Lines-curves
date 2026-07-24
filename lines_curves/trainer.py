@@ -39,7 +39,7 @@ def _make_loader(dataset, batch_size: int, workers: int, shuffle: bool) -> DataL
         pin_memory=torch.cuda.is_available(),
         # Respawn workers each epoch so dataset.set_epoch() reaches every worker.
         persistent_workers=False,
-        drop_last=shuffle,
+        drop_last=False,
     )
 
 
@@ -154,7 +154,7 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
     amp_enabled = bool(common.get("amp", True)) and device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     weights = LossWeights(**config.get("loss", {}))
-    start_epoch, global_step, best_f1 = 0, 0, -1.0
+    start_epoch, global_step, best_f1 = 0, 0, float("-inf")
 
     if resume:
         payload = torch.load(resume, map_location="cpu", weights_only=False)
@@ -164,7 +164,7 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
             scaler.load_state_dict(payload.get("scaler", {}))
             start_epoch = int(payload["epoch"]) + 1
             global_step = int(payload.get("global_step", 0))
-            best_f1 = float(payload.get("best_f1", -1.0))
+            best_f1 = float(payload.get("best_f1", float("-inf")))
 
     for epoch in range(start_epoch, int(stage_cfg["epochs"])):
         train_dataset.set_epoch(epoch)
