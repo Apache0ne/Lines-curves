@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import lzma
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
@@ -8,6 +9,37 @@ from typing import Iterable
 import cv2
 import numpy as np
 from PIL import Image, ImageFilter
+
+
+PRIMARY_POINT_PATTERNS = (
+    "point_set_clean.csv",
+    "point_set_clean.csv.xz",
+    "point_cloud_clean.csv",
+    "point_cloud_clean.csv.xz",
+)
+POINT_PATTERNS = (
+    "point_set*.csv",
+    "point_set*.csv.xz",
+    "point_cloud*.csv",
+    "point_cloud*.csv.xz",
+)
+
+
+def discover_point_files(root: str | Path) -> list[Path]:
+    """Find CurveML point-set files while excluding metadata CSV files."""
+    root = Path(root).expanduser().resolve()
+    primary: set[Path] = set()
+    for pattern in PRIMARY_POINT_PATTERNS:
+        primary.update(root.rglob(pattern))
+    if primary:
+        return sorted(primary)
+    named: set[Path] = set()
+    for pattern in POINT_PATTERNS:
+        named.update(root.rglob(pattern))
+    if named:
+        return sorted(named)
+    fallback = set(root.rglob("*.csv")) | set(root.rglob("*.csv.xz"))
+    return sorted(fallback)
 
 
 class CurvePointBank:
@@ -31,7 +63,7 @@ class CurvePointBank:
                 ]
                 self.files = [path for path in self.files if path.exists()]
             else:
-                self.files = sorted(self.root.rglob("*.csv"))
+                self.files = discover_point_files(self.root)
 
     def __len__(self) -> int:
         return len(self.files)
@@ -51,7 +83,15 @@ class CurvePointBank:
     def _read_points(path: Path) -> np.ndarray | None:
         rows: list[list[float]] = []
         try:
-            with path.open("r", newline="", encoding="utf-8", errors="ignore") as handle:
+            if path.suffix.lower() == ".xz":
+                handle_context = lzma.open(
+                    path, "rt", newline="", encoding="utf-8", errors="ignore"
+                )
+            else:
+                handle_context = path.open(
+                    "r", newline="", encoding="utf-8", errors="ignore"
+                )
+            with handle_context as handle:
                 for row in csv.reader(handle):
                     numeric: list[float] = []
                     for item in row:
