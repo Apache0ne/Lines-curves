@@ -11,6 +11,7 @@ if not os.path.exists(repo):
 os.chdir(repo)
 subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
 subprocess.run([sys.executable, "scripts/smoke_test.py"], check=True)
+subprocess.run([sys.executable, "-m", "pytest", "-q"], check=True)
 ```
 
 Download and normalize BIPED v2 and BSDS500 automatically. Add `--with-curveml` to clone the official CurveML repository and build a point-set manifest:
@@ -23,7 +24,7 @@ subprocess.run([
 ], check=True)
 ```
 
-The CurveML clone is optional because the exact procedural generator is always available. Stage 2 automatically uses CurveML CSV point sets whenever the manifest contains them.
+The CurveML clone is optional because the exact procedural generator is always available. Stage 2 automatically uses clean CurveML point sets from `.csv` or `.csv.xz` files whenever the manifest contains them.
 
 Run the full curriculum:
 
