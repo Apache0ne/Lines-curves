@@ -16,11 +16,11 @@ def seed_everything(seed: int, deterministic: bool = False) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    if deterministic:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    else:
-        torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = deterministic
+    torch.backends.cudnn.benchmark = not deterministic
+    if torch.cuda.is_available():
+        torch.backends.cuda.matmul.allow_tf32 = not deterministic
+        torch.backends.cudnn.allow_tf32 = not deterministic
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
