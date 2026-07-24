@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import random
 import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
@@ -64,6 +66,8 @@ def _checkpoint_payload(
         "global_step": global_step,
         "best_f1": best_f1,
         "config": config,
+        "python_rng_state": random.getstate(),
+        "numpy_rng_state": np.random.get_state(),
         "torch_rng_state": torch.get_rng_state(),
         "cuda_rng_state_all": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
     }
@@ -165,6 +169,14 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
             start_epoch = int(payload["epoch"]) + 1
             global_step = int(payload.get("global_step", 0))
             best_f1 = float(payload.get("best_f1", float("-inf")))
+            if "python_rng_state" in payload:
+                random.setstate(payload["python_rng_state"])
+            if "numpy_rng_state" in payload:
+                np.random.set_state(payload["numpy_rng_state"])
+            if "torch_rng_state" in payload:
+                torch.set_rng_state(payload["torch_rng_state"])
+            if torch.cuda.is_available() and payload.get("cuda_rng_state_all") is not None:
+                torch.cuda.set_rng_state_all(payload["cuda_rng_state_all"])
 
     for epoch in range(start_epoch, int(stage_cfg["epochs"])):
         train_dataset.set_epoch(epoch)
@@ -223,6 +235,7 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
             model, optimizer, scheduler, scaler, stage, epoch, global_step, config, max(best_f1, validation_f1)
         )
         atomic_torch_save(payload, output_dir / "last.pt")
+        atomic_torch_save(payload, output_dir / f"epoch_{epoch:03d}.pt")
         if validation_f1 > best_f1:
             best_f1 = validation_f1
             payload["best_f1"] = best_f1
