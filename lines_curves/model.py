@@ -186,8 +186,8 @@ class TEEDCurves(nn.Module):
 
     @staticmethod
     def _resize_to(x: torch.Tensor, height: int, width: int) -> torch.Tensor:
-        if x.shape[-2:] == (height, width):
-            return x
+        # Always interpolate, even for equal shapes. This is an exact identity
+        # in that case and keeps ONNX dynamic-height/width export on one path.
         return F.interpolate(x, size=(height, width), mode="bicubic", align_corners=False)
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -224,7 +224,9 @@ class TEEDCurves(nn.Module):
         return sides, fused
 
     def forward(self, x: torch.Tensor) -> dict[str, Any]:
-        if x.ndim != 4 or x.shape[1] != 3:
+        if x.ndim != 4:
+            raise ValueError(f"Expected BCHW RGB input, got {tuple(x.shape)}")
+        if not torch.jit.is_tracing() and x.shape[1] != 3:
             raise ValueError(f"Expected BCHW RGB input, got {tuple(x.shape)}")
         out_hw = (x.shape[-2], x.shape[-1])
         features = self.encode(x)
