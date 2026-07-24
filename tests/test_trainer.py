@@ -171,3 +171,33 @@ def test_completed_checkpoint_copied_to_new_output_exports_best(tmp_path: Path):
     restored = torch.load(best, map_location="cpu", weights_only=False)["model"]
     for name, tensor in source.items():
         assert torch.equal(tensor, restored[name]), name
+
+
+def test_auto_resume_skips_completed_curriculum(tmp_path: Path):
+    from train_all import run_all_stages
+
+    _fake_teed_checkpoint(tmp_path / "fake_teed.pth")
+    natural_root = tmp_path / "natural"
+    _write_natural(natural_root)
+    config = _base_config(tmp_path, natural_root)
+    final = run_all_stages(config, auto_resume=False)
+    before = {
+        stage: torch.load(
+            tmp_path / "outputs" / f"stage{stage}" / "last.pt",
+            map_location="cpu",
+            weights_only=False,
+        )["global_step"]
+        for stage in (1, 2, 3)
+    }
+
+    resumed_final = run_all_stages(config, auto_resume=True)
+    after = {
+        stage: torch.load(
+            tmp_path / "outputs" / f"stage{stage}" / "last.pt",
+            map_location="cpu",
+            weights_only=False,
+        )["global_step"]
+        for stage in (1, 2, 3)
+    }
+    assert final == resumed_final
+    assert before == after
