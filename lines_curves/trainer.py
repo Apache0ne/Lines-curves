@@ -37,7 +37,8 @@ def _make_loader(dataset, batch_size: int, workers: int, shuffle: bool) -> DataL
         shuffle=shuffle,
         num_workers=workers,
         pin_memory=torch.cuda.is_available(),
-        persistent_workers=workers > 0,
+        # Respawn workers each epoch so dataset.set_epoch() reaches every worker.
+        persistent_workers=False,
         drop_last=shuffle,
     )
 
