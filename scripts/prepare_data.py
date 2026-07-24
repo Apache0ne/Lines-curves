@@ -19,7 +19,7 @@ from lines_curves.curve_labels import derive_curve_mask
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-EDGE_WORDS = {"edge", "edges", "edge_maps", "gt", "groundtruth", "ground_truth", "label", "labels"}
+EDGE_WORDS = {"edge_maps", "gt", "groundtruth", "ground_truth", "label", "labels"}
 IMAGE_WORDS = {"img", "imgs", "image", "images", "rgb"}
 SUFFIXES = ("_edge", "-edge", "_gt", "-gt", "_label", "-label")
 
@@ -56,28 +56,83 @@ def copy_normalized(image: Path, edge: Path, output_root: Path, split: str, name
     cv2.imwrite(str(output_root / split / "curves" / f"{name}.png"), curve)
 
 
+def _replace_modality_path(image: Path, root: Path) -> list[Path]:
+    """Return likely BIPED ground-truth paths for one RGB image."""
+    try:
+        relative = image.relative_to(root)
+    except ValueError:
+        relative = image
+    parts = list(relative.parts)
+    candidates: list[Path] = []
+    for marker in ("imgs", "images"):
+        if marker not in [part.lower() for part in parts]:
+            continue
+        marker_index = next(i for i, part in enumerate(parts) if part.lower() == marker)
+        replaced = parts.copy()
+        replaced[marker_index] = "edge_maps"
+        base = root.joinpath(*replaced)
+        for extension in (".png", ".jpg", ".jpeg", ".bmp"):
+            candidates.append(base.with_suffix(extension))
+    return candidates
+
+
+def _biped_output_name(image: Path, root: Path) -> str:
+    """Create a stable unique filename while preserving image/GT pairing."""
+    try:
+        relative = image.relative_to(root)
+    except ValueError:
+        relative = image
+    parts = list(relative.with_suffix("").parts)
+    lowered = [part.lower() for part in parts]
+    for marker in ("imgs", "images"):
+        if marker in lowered:
+            parts = parts[lowered.index(marker) + 1 :]
+            break
+    safe = "_".join(parts)
+    safe = "".join(character if character.isalnum() or character in "-_" else "_" for character in safe)
+    return f"biped_{safe.lower()}"
+
+
 def prepare_biped(root: Path, output_root: Path) -> int:
     files = [path for path in root.rglob("*") if path.suffix.lower() in IMAGE_EXTENSIONS]
-    edge_candidates, image_candidates = [], []
-    for path in files:
-        parts = {part.lower() for part in path.parts}
-        if parts & EDGE_WORDS or any(word in path.stem.lower() for word in ("edge", "_gt", "-gt")):
-            edge_candidates.append(path)
-        elif parts & IMAGE_WORDS:
-            image_candidates.append(path)
+    image_candidates = [
+        path
+        for path in files
+        if ({part.lower() for part in path.parts} & IMAGE_WORDS)
+        and "edge_maps" not in {part.lower() for part in path.parts}
+    ]
+    edge_candidates = [
+        path
+        for path in files
+        if ({part.lower() for part in path.parts} & EDGE_WORDS)
+        or any(word in path.stem.lower() for word in ("_edge", "-edge", "_gt", "-gt"))
+    ]
     edge_index: dict[tuple[str, str], list[Path]] = {}
     for edge in edge_candidates:
         edge_index.setdefault((infer_split(edge), normalized_stem(edge)), []).append(edge)
+
     count = 0
-    for image in image_candidates:
+    seen_outputs: set[tuple[str, str]] = set()
+    for image in sorted(image_candidates):
         split, stem = infer_split(image), normalized_stem(image)
-        matches = edge_index.get((split, stem)) or edge_index.get(("train", stem))
-        if not matches:
+        counterpart = next((candidate for candidate in _replace_modality_path(image, root) if candidate.exists()), None)
+        if counterpart is None:
+            matches = edge_index.get((split, stem)) or edge_index.get(("train", stem))
+            counterpart = matches[0] if matches else None
+        if counterpart is None:
             continue
-        copy_normalized(image, matches[0], output_root, split, f"biped_{stem}")
+        name = _biped_output_name(image, root)
+        identity = (split, name)
+        if identity in seen_outputs:
+            continue
+        copy_normalized(image, counterpart, output_root, split, name)
+        seen_outputs.add(identity)
         count += 1
     if count == 0:
-        raise RuntimeError(f"No BIPED image/edge pairs were detected under {root}")
+        raise RuntimeError(
+            f"No BIPED image/edge pairs were detected under {root}. "
+            "Expected paths resembling edges/imgs/<split>/... and edges/edge_maps/<split>/...."
+        )
     return count
 
 
