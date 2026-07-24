@@ -41,7 +41,7 @@ pytest -q
 python scripts/smoke_test.py
 ```
 
-The test suite includes architecture compatibility, odd image sizes, finite gradients, BIPED/BSDS path normalization, CurveML compressed point sets, pseudo-label selectivity, full miniature Stage 1→2→3 handoff, and exact interrupted-training resume.
+The test suite includes architecture compatibility, odd image sizes, finite gradients, BIPED/BSDS path normalization, CurveML compressed point sets, pseudo-label selectivity, full miniature Stage 1→2→3 handoff, exact interrupted-training resume, and automatic curriculum recovery.
 
 ## Data layout
 
@@ -98,13 +98,15 @@ python scripts/preflight.py \
   --report outputs/preflight.json
 ```
 
-Preflight validates all paths and stage values, counts natural and CurveML records, verifies the TEED checkpoint, checks the 67,980-parameter architecture, and runs one finite forward/backward sample for every stage. It exits nonzero on a blocking problem.
+Preflight validates all paths and stage values, counts natural and CurveML records, verifies the TEED checkpoint, checks the 67,980-parameter architecture, validates the threshold grid, and runs one finite forward/backward sample for every stage. It exits nonzero on a blocking problem.
 
 ## Train
 
 ```bash
-python train_all.py --config configs/colab.yaml
+python train_all.py --config configs/colab.yaml --auto-resume
 ```
+
+`--auto-resume` resumes an incomplete stage from `last.pt` and skips stages already completed under the same output root.
 
 Individual stages:
 
@@ -115,6 +117,8 @@ python train.py --stage 3 --config configs/colab.yaml
 ```
 
 Checkpoints are written atomically as `best.pt`, `last.pt`, and `epoch_XXX.pt`. Each best model is also exported as compact `best.safetensors` and `best_fp16.safetensors` files. Stage 2 loads Stage 1's `best.pt`; Stage 3 loads Stage 2's `best.pt`. Metrics are appended to `metrics.jsonl`.
+
+Natural validation uses global TP/FP/FN counts over the whole validation set and sweeps the configurable thresholds in `common.validation_thresholds`. The curve F1 from the best threshold selects the checkpoint instead of relying on a fixed 0.5 cutoff or an average of per-batch F1 values.
 
 The default config enables deterministic mode. On the same hardware/software stack, an interrupted run can restore optimizer, scheduler, scaler, and all recorded RNG state:
 
