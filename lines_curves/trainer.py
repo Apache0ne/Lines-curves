@@ -16,7 +16,13 @@ from safetensors.torch import save_file
 from .datasets import MixedCurveDataset, NaturalValidationDataset
 from .losses import LossWeights, compute_loss
 from .model import TEEDCurves
-from .utils import append_jsonl, atomic_torch_save, binary_metrics, seed_everything
+from .utils import (
+    append_jsonl,
+    atomic_torch_save,
+    binary_counts,
+    binary_metrics_from_counts,
+    seed_everything,
+)
 
 
 def _download_teed_checkpoint(cache_dir: Path) -> Path:
@@ -39,7 +45,6 @@ def _make_loader(dataset, batch_size: int, workers: int, shuffle: bool) -> DataL
         shuffle=shuffle,
         num_workers=workers,
         pin_memory=torch.cuda.is_available(),
-        # Respawn workers each epoch so dataset.set_epoch() reaches every worker.
         persistent_workers=False,
         drop_last=False,
     )
@@ -182,14 +187,9 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
             total_epochs = int(stage_cfg["epochs"])
             if not best_path.exists():
                 if start_epoch >= total_epochs:
-                    # A completed checkpoint copied into a new output directory
-                    # is still a valid final model even when no more epochs run.
                     atomic_torch_save(payload, best_path)
                     _save_lightweight_weights(model, output_dir, "best")
                 else:
-                    # The original best checkpoint is unavailable in this new
-                    # directory. Force the first continued epoch to establish a
-                    # local best rather than returning a nonexistent path.
                     best_f1 = float("-inf")
 
     for epoch in range(start_epoch, int(stage_cfg["epochs"])):
@@ -231,17 +231,48 @@ def train_stage(config: dict[str, Any], stage: int, resume: str | Path | None = 
         validation_f1 = -epoch_row["train_loss"]
         if val_loader is not None:
             model.eval()
-            aggregate = {"edge_f1": 0.0, "curve_f1": 0.0}
+            thresholds = tuple(
+                sorted(
+                    {
+                        float(value)
+                        for value in common.get(
+                            "validation_thresholds", [0.25, 0.35, 0.50, 0.65]
+                        )
+                        if 0.0 < float(value) < 1.0
+                    }
+                )
+            )
+            if not thresholds:
+                raise ValueError("common.validation_thresholds must contain a value within (0, 1)")
+            aggregate = {
+                threshold: {"edge": [0, 0, 0], "curve": [0, 0, 0]}
+                for threshold in thresholds
+            }
             with torch.no_grad():
                 for batch in val_loader:
                     image = batch["image"].to(device, non_blocking=True)
                     outputs = model(image)
-                    edge_metrics = binary_metrics(outputs["edge"].cpu(), batch["edge"])
-                    curve_metrics = binary_metrics(outputs["curve"].cpu(), batch["curve"])
-                    aggregate["edge_f1"] += edge_metrics["f1"]
-                    aggregate["curve_f1"] += curve_metrics["f1"]
-            epoch_row["val_edge_f1"] = aggregate["edge_f1"] / len(val_loader)
-            epoch_row["val_curve_f1"] = aggregate["curve_f1"] / len(val_loader)
+                    edge_logits = outputs["edge"].cpu()
+                    curve_logits = outputs["curve"].cpu()
+                    for threshold in thresholds:
+                        for name, logits, target in (
+                            ("edge", edge_logits, batch["edge"]),
+                            ("curve", curve_logits, batch["curve"]),
+                        ):
+                            counts = binary_counts(logits, target, threshold)
+                            for index, count in enumerate(counts):
+                                aggregate[threshold][name][index] += count
+            best_metrics: dict[str, tuple[float, dict[str, float]]] = {}
+            for name in ("edge", "curve"):
+                candidates = [
+                    (threshold, binary_metrics_from_counts(*aggregate[threshold][name]))
+                    for threshold in thresholds
+                ]
+                best_metrics[name] = max(candidates, key=lambda item: item[1]["f1"])
+                threshold, metrics = best_metrics[name]
+                epoch_row[f"val_{name}_threshold"] = threshold
+                for metric_name, metric_value in metrics.items():
+                    epoch_row[f"val_{name}_{metric_name}"] = metric_value
             validation_f1 = epoch_row["val_curve_f1"]
 
         append_jsonl(output_dir / "metrics.jsonl", epoch_row)
