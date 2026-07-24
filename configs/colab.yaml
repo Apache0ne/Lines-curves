@@ -1,6 +1,6 @@
 common:
   seed: 1021
-  deterministic: false
+  deterministic: true
   image_size: 352
   workers: 2
   amp: true
