@@ -39,3 +39,31 @@ def test_nested_biped_zip_extraction(tmp_path: Path):
     extracted = resolve_biped_root(package, tmp_path / "extracted")
     assert (extracted / "edges/imgs/train/rgbr/real/sample.jpg").exists()
     assert (extracted / "edges/edge_maps/train/rgbr/real/sample.png").exists()
+
+
+def test_prepare_bsds_creates_missing_output_root(tmp_path: Path):
+    from scipy.io import savemat
+
+    from scripts.prepare_data import prepare_bsds
+
+    root = tmp_path / "BSDS500"
+    image_dir = root / "data" / "images" / "train"
+    gt_dir = root / "data" / "groundTruth" / "train"
+    image_dir.mkdir(parents=True)
+    gt_dir.mkdir(parents=True)
+
+    image = np.zeros((48, 64, 3), np.uint8)
+    cv2.ellipse(image, (32, 24), (18, 10), 0, 0, 280, (255, 255, 255), 1)
+    boundary = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) > 0
+    cv2.imwrite(str(image_dir / "sample.jpg"), image)
+
+    ground_truth = np.empty((1,), dtype=object)
+    ground_truth[0] = {"Boundaries": boundary.astype(np.uint8)}
+    savemat(gt_dir / "sample.mat", {"groundTruth": ground_truth})
+
+    output = tmp_path / "new" / "normalized"
+    assert not output.exists()
+    assert prepare_bsds(root, output) == 1
+    assert (output / "train" / "images" / "bsds_sample.png").exists()
+    assert (output / "train" / "edges" / "bsds_sample.png").exists()
+    assert (output / "train" / "curves" / "bsds_sample.png").exists()
