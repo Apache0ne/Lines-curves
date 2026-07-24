@@ -131,20 +131,25 @@ def _normalize_and_place(
     return np.round(points).astype(np.int32)
 
 
-def _background(rng: np.random.Generator, size: int) -> np.ndarray:
+def _background(rng: np.random.Generator, size: int) -> tuple[np.ndarray, np.ndarray]:
     base = rng.integers(20, 236, size=3, dtype=np.uint8)
     image = np.empty((size, size, 3), dtype=np.uint8)
     image[:] = base
+    structural_edge = np.zeros((size, size), dtype=np.uint8)
     # Low-frequency texture.
     noise_small = rng.normal(0, rng.uniform(5, 35), size=(max(4, size // 16), max(4, size // 16), 3))
     noise = cv2.resize(noise_small.astype(np.float32), (size, size), interpolation=cv2.INTER_CUBIC)
     image = np.clip(image.astype(np.float32) + noise, 0, 255).astype(np.uint8)
     for _ in range(int(rng.integers(0, 8))):
         color = tuple(int(v) for v in rng.integers(0, 256, size=3))
-        p1 = tuple(int(v) for v in rng.integers(0, size, size=2))
-        p2 = tuple(int(v) for v in rng.integers(0, size, size=2))
+        p1_raw = tuple(int(v) for v in rng.integers(0, size, size=2))
+        p2_raw = tuple(int(v) for v in rng.integers(0, size, size=2))
+        p1 = (min(p1_raw[0], p2_raw[0]), min(p1_raw[1], p2_raw[1]))
+        p2 = (max(p1_raw[0], p2_raw[0]), max(p1_raw[1], p2_raw[1]))
         cv2.rectangle(image, p1, p2, color, thickness=-1)
-    return cv2.GaussianBlur(image, (0, 0), sigmaX=float(rng.uniform(0.0, 2.0)))
+        cv2.rectangle(structural_edge, p1, p2, 255, thickness=1, lineType=cv2.LINE_AA)
+    image = cv2.GaussianBlur(image, (0, 0), sigmaX=float(rng.uniform(0.0, 2.0)))
+    return image, structural_edge
 
 
 def render_composite(
@@ -154,8 +159,7 @@ def render_composite(
     min_curves: int = 1,
     max_curves: int = 10,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    image = _background(rng, size)
-    edge = np.zeros((size, size), dtype=np.uint8)
+    image, edge = _background(rng, size)
     curve = np.zeros_like(edge)
 
     curve_count = int(rng.integers(min_curves, max_curves + 1))
@@ -186,8 +190,9 @@ def render_composite(
         y2 = min(size, y1 + int(rng.integers(6, max(7, size // 4))))
         patch_color = tuple(int(v) for v in rng.integers(0, 256, size=3))
         cv2.rectangle(image, (x1, y1), (x2, y2), patch_color, -1)
-        edge[y1:y2, x1:x2] = 0
-        curve[y1:y2, x1:x2] = 0
+        edge[y1 : y2 + 1, x1 : x2 + 1] = 0
+        curve[y1 : y2 + 1, x1 : x2 + 1] = 0
+        cv2.rectangle(edge, (x1, y1), (x2, y2), 255, 1, lineType=cv2.LINE_AA)
 
     pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     if rng.random() < 0.45:
