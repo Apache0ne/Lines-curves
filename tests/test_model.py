@@ -8,6 +8,8 @@ def test_shapes_and_stage_freeze():
     output = model(torch.randn(1, 3, 96, 104))
     assert output["edge"].shape == (1, 1, 96, 104)
     assert output["curve"].shape == (1, 1, 96, 104)
+    odd = model(torch.randn(1, 3, 33, 35))
+    assert odd["edge"].shape == odd["curve"].shape == (1, 1, 33, 35)
     model.freeze_for_stage(1)
     trainable = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
     assert trainable
