@@ -1,0 +1,41 @@
+{
+  "status": "FP32_SYNTHETIC_PILOT_COMPLETE",
+  "warning": "Synthetic-only local pilots trained from scratch at 128x128 because network access to the public TEED checkpoint and real datasets was unavailable. These are not the final CurveML+BIPED+BSDS500 curriculum weights.",
+  "parameters": 67980,
+  "recommended_model": {
+    "file": "teed_curves_fp32_pilot.safetensors",
+    "bytes": 277952,
+    "sha256": "1be091b5ee4aeb68091fb5d747133eacd6a48100dc82ba5f96265f0260afc0c8",
+    "validation_96_composites": {
+      "edge_threshold": 0.65,
+      "edge_precision": 0.770452412645291,
+      "edge_recall": 0.8474610187625067,
+      "edge_f1": 0.8071240078157653,
+      "curve_threshold": 0.70,
+      "curve_precision": 0.6225696248771628,
+      "curve_recall": 0.8358944601600575,
+      "curve_f1": 0.7136308748877622
+    }
+  },
+  "experimental_v2": {
+    "curve_threshold": 0.85,
+    "curve_f1": 0.6599663617344218,
+    "straight_only_fp_rate": 0.03341216966509819,
+    "note": "Reduces straight-line false positives but over-suppresses thin and simple curves."
+  },
+  "v1_v2_comparison": {
+    "edge_branch_max_abs_diff": 0.0,
+    "straight_sheet_v1_mean_fp_rate": 0.1417694091796875,
+    "straight_sheet_v2_mean_fp_rate": 0.0533905029296875,
+    "heldout_v1_mean_curve_f1": 0.563628683318615,
+    "heldout_v2_mean_curve_f1": 0.5183555996370903
+  },
+  "runtime_cpu_this_container": {
+    "safetensors_pt_v1_max_abs_diff": 0.0,
+    "safetensors_pt_v2_max_abs_diff": 0.0,
+    "batch1_128_ms": 18.002621399985703,
+    "batch1_128_fps": 55.547465992968895,
+    "batch1_352_ms": 80.69925899999362,
+    "batch1_352_fps": 12.391687512274173
+  }
+}
