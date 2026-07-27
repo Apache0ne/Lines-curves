@@ -1,0 +1,87 @@
+{
+  "aggregate": {
+    "cases": 9,
+    "config": {
+      "adaptive_high_max": 0.65,
+      "adaptive_high_min": 0.12,
+      "adaptive_high_scale": 0.85,
+      "adaptive_low_ratio": 0.6,
+      "adaptive_threshold": true,
+      "chroma_absolute_threshold": 0.02,
+      "chroma_global_threshold": 0.06,
+      "close_radius": 0,
+      "coherence_weight": 0.32,
+      "color_weight": 0.38,
+      "edge_weight": 0.7,
+      "fft_highpass": 0.012,
+      "fft_lowpass": 0.42,
+      "fft_order": 4,
+      "high_threshold": 0.52,
+      "homomorphic_anchor_weight": 0.35,
+      "illumination_sigma": 18.0,
+      "local_contrast_sigma": 7.0,
+      "low_threshold": 0.3,
+      "min_component": 12,
+      "mode": "hybrid",
+      "nms": true,
+      "return_thinned": false,
+      "ridge_weight": 0.6,
+      "scale_weights": [1.0, 0.95, 0.85, 0.68, 0.48],
+      "scales": [0.65, 1.0, 1.6, 2.5, 4.0]
+    },
+    "mean_f1": 0.9879821283749677,
+    "mean_ods_f1": 0.9884033745833016,
+    "mean_precision": 0.989700755885476,
+    "mean_recall": 0.9863579249685874,
+    "min_f1": 0.9725207192196953,
+    "seed": 1234,
+    "size": 192,
+    "tolerance": 2.5
+  },
+  "cases": [
+    {
+      "baselines": {"canny_f1": 0.9398235918735731, "fourier_scharr_ods_f1": 0.9935296544768251, "scharr_ods_f1": 0.9955752212389382, "sobel_ods_f1": 0.9955611921369689},
+      "case": "clean", "f1": 0.9935153475555137, "iou": 0.05009276437847866, "ods_f1": 0.99435382685069, "ods_threshold": 0.02, "precision": 0.9886934673366834, "recall": 0.9983844911147012
+    },
+    {
+      "baselines": {"canny_f1": 0.9800391213994705, "fourier_scharr_ods_f1": 0.9770053703915967, "scharr_ods_f1": 0.9764295962287354, "sobel_ods_f1": 0.9763084806627976},
+      "case": "illumination", "f1": 0.9765983751774839, "iou": 0.003861003861003861, "ods_f1": 0.9791293076489616, "ods_threshold": 0.02, "precision": 0.9907521578298397, "recall": 0.962843295638126
+    },
+    {
+      "baselines": {"canny_f1": 0.9930907856975634, "fourier_scharr_ods_f1": 0.9920651685715868, "scharr_ods_f1": 0.9922098871811315, "sobel_ods_f1": 0.9920329811904148},
+      "case": "noise", "f1": 0.9921246485397129, "iou": 0.05027726432532347, "ods_f1": 0.992120718079862, "ods_threshold": 0.09, "precision": 0.9875233936369308, "recall": 0.9967689822294022
+    },
+    {
+      "baselines": {"canny_f1": 0.904424778761062, "fourier_scharr_ods_f1": 0.9739945919186712, "scharr_ods_f1": 0.9740026759752735, "sobel_ods_f1": 0.9739538547799874},
+      "case": "blur", "f1": 0.9813183108537665, "iou": 0.009109311740890687, "ods_f1": 0.9813183108537665, "ods_threshold": 0.060000000000000005, "precision": 0.9885909868796349, "recall": 0.9741518578352181
+    },
+    {
+      "baselines": {"canny_f1": 0.9934659316252875, "fourier_scharr_ods_f1": 0.9943962625183271, "scharr_ods_f1": 0.9944115684506746, "sobel_ods_f1": 0.9943715680927859},
+      "case": "texture", "f1": 0.9940336833293073, "iou": 0.05939876856211518, "ods_f1": 0.9945421625846246, "ods_threshold": 0.23, "precision": 0.990515708358032, "recall": 0.9975767366720517
+    },
+    {
+      "baselines": {"canny_f1": 0.9786476710220857, "fourier_scharr_ods_f1": 0.9781435145994115, "scharr_ods_f1": 0.9781512707514405, "sobel_ods_f1": 0.9766094273268897},
+      "case": "jpeg", "f1": 0.9817280706992297, "iou": 0.009504412763068567, "ods_f1": 0.9825541348538944, "ods_threshold": 0.060000000000000005, "precision": 0.9919354838709677, "recall": 0.9717285945072698
+    },
+    {
+      "baselines": {"canny_f1": 0.97471774556922, "fourier_scharr_ods_f1": 0.9703948281124275, "scharr_ods_f1": 0.9681747395805981, "sobel_ods_f1": 0.9661179478983539},
+      "case": "mixed", "f1": 0.9725207192196953, "iou": 0.022935779816513763, "ods_f1": 0.9716119103779153, "ods_threshold": 0.23, "precision": 0.9692956050571945, "recall": 0.975767366720517
+    },
+    {
+      "baselines": {"canny_f1": 0.0, "fourier_scharr_ods_f1": 0.0, "scharr_ods_f1": 0.0, "sobel_ods_f1": 0.0},
+      "case": "isoluminant_color", "f1": 1.0, "iou": 0.0, "ods_f1": 1.0, "ods_threshold": 0.01, "precision": 1.0, "recall": 1.0
+    },
+    {
+      "baselines": {"canny_f1": 0.0, "fourier_scharr_ods_f1": 1.0, "scharr_ods_f1": 1.0, "sobel_ods_f1": 1.0},
+      "case": "faint_lines", "f1": 1.0, "iou": 0.009324009324009324, "ods_f1": 1.0, "ods_threshold": 0.16, "precision": 1.0, "recall": 1.0
+    }
+  ],
+  "comparison": {
+    "canny": {"mean_f1": 0.7515788473275846, "min_f1": 0.0},
+    "fourier_scharr_ods": {"mean_f1": 0.8755032656209829, "min_f1": 0.0},
+    "scharr_fourier_fusion": {"mean_f1": 0.9879821283749677, "min_f1": 0.9725207192196953},
+    "scharr_fourier_fusion_ods": {"mean_f1": 0.9884033745833016, "min_f1": 0.9716119103779153},
+    "scharr_ods": {"mean_f1": 0.875439439934088, "min_f1": 0.0},
+    "sobel_ods": {"mean_f1": 0.874995050232022, "min_f1": 0.0}
+  }
+}
