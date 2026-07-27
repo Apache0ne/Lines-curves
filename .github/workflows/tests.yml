@@ -24,8 +24,6 @@ jobs:
           scipy==1.13.1
           opencv-python-headless==4.10.0.84
           pytest==8.3.5
-      - name: Install package without re-resolving dependencies
-        run: python -m pip install -e . --no-deps
       - run: python -m compileall -q scharr_fourier scripts tests
       - run: pytest
       - run: python scripts/benchmark.py --size 128 --output outputs/benchmark
