@@ -20,10 +20,11 @@ jobs:
       - name: Install runtime and test dependencies
         run: python -m pip install numpy scipy opencv-python-headless pytest
       - run: python -m compileall -q scharr_fourier scripts tests
-      - run: pytest
+      - name: Run tests with diagnostics
+        run: pytest --junitxml=outputs/junit-py${{ matrix.python-version }}.xml
       - run: python scripts/benchmark.py --size 128 --output outputs/benchmark
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: benchmark-py${{ matrix.python-version }}
-          path: outputs/benchmark
+          name: diagnostics-py${{ matrix.python-version }}
+          path: outputs
