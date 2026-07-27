@@ -1,0 +1,75 @@
+{
+  "benchmark_type": "label-free transformation consistency; not ground-truth line accuracy",
+  "dataset": {
+    "description": "27 user-provided natural aircraft photographs; images and captions are not redistributed",
+    "images": 27,
+    "ground_truth_line_masks": false
+  },
+  "environment": {
+    "cpu_count": 5,
+    "opencv": "4.13.0",
+    "numpy": "2.3.5",
+    "max_side": 512,
+    "workers": 4,
+    "tolerance_pixels": 1.5
+  },
+  "aggregate": {
+    "wall_seconds": 23.95605795099982,
+    "mean_base_seconds": 0.29287720825924324,
+    "mean_line_density": 0.08102807743240464,
+    "mean_nonrepeat_f1": 0.9865445985504032,
+    "min_nonrepeat_f1": 0.9221106192912167,
+    "perfect_transform_image_pairs": 81,
+    "total_transform_image_pairs": 189
+  },
+  "transforms": {
+    "repeat": {
+      "mean_f1": 1.0,
+      "min_f1": 1.0,
+      "probability_correlation": 1.0
+    },
+    "flip_h": {
+      "mean_f1": 1.0,
+      "min_f1": 1.0,
+      "probability_correlation": 0.9999998946419061
+    },
+    "flip_v": {
+      "mean_f1": 1.0,
+      "min_f1": 1.0,
+      "probability_correlation": 0.9999999060412066
+    },
+    "rot90": {
+      "mean_f1": 1.0,
+      "min_f1": 1.0,
+      "probability_correlation": 0.9999998953878554
+    },
+    "exposure": {
+      "mean_f1": 0.9808862502021722,
+      "min_f1": 0.9412294398715318,
+      "probability_correlation": 0.9457660393232167
+    },
+    "jpeg70": {
+      "mean_f1": 0.9574540144786208,
+      "min_f1": 0.9221106192912167,
+      "probability_correlation": 0.8172359396774412
+    },
+    "noise2": {
+      "mean_f1": 0.9894387950062286,
+      "min_f1": 0.9763826670344878,
+      "probability_correlation": 0.9799171678526785
+    },
+    "resize75": {
+      "mean_f1": 0.9780331301658023,
+      "min_f1": 0.9555239934451067,
+      "probability_correlation": 0.9450130784566546
+    }
+  },
+  "hysteresis_validation": {
+    "random_equivalence_cases": 300,
+    "random_equivalence": "PASS",
+    "worst_shaped_256_old_seconds": 0.14078497699983927,
+    "worst_shaped_256_new_seconds": 0.0006334479999168252,
+    "speedup": 222.25,
+    "output_equal": true
+  }
+}

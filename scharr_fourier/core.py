@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Literal
 
 import cv2
@@ -15,26 +15,26 @@ Mode = Literal["edge", "ridge", "hybrid"]
 class ScharrFourierConfig:
     mode: Mode = "hybrid"
     scales: tuple[float, ...] = (0.65, 1.0, 1.6, 2.5, 4.0)
-    scale_weights: tuple[float, ...] = (1.00, 0.95, 0.85, 0.68, 0.48)
+    scale_weights: tuple[float, ...] = (1.0, 0.95, 0.85, 0.68, 0.48)
     fft_highpass: float = 0.012
     fft_lowpass: float = 0.42
     fft_order: int = 4
     illumination_sigma: float = 18.0
     local_contrast_sigma: float = 7.0
     color_weight: float = 0.38
-    chroma_absolute_threshold: float = 0.020
-    chroma_global_threshold: float = 0.060
+    chroma_absolute_threshold: float = 0.02
+    chroma_global_threshold: float = 0.06
     homomorphic_anchor_weight: float = 0.35
     adaptive_threshold: bool = True
-    adaptive_low_ratio: float = 0.60
+    adaptive_low_ratio: float = 0.6
     adaptive_high_scale: float = 0.85
     adaptive_high_min: float = 0.12
     adaptive_high_max: float = 0.65
     coherence_weight: float = 0.32
-    ridge_weight: float = 0.60
-    edge_weight: float = 0.70
+    ridge_weight: float = 0.6
+    edge_weight: float = 0.7
     nms: bool = True
-    low_threshold: float = 0.30
+    low_threshold: float = 0.3
     high_threshold: float = 0.52
     min_component: int = 12
     close_radius: int = 0
@@ -63,8 +63,7 @@ def _as_float_image(image: Array) -> Array:
     if a.ndim == 3 and a.shape[2] not in (1, 3, 4):
         raise ValueError(f"Expected 1, 3, or 4 channels, got shape {a.shape}")
     if np.issubdtype(a.dtype, np.integer):
-        info = np.iinfo(a.dtype)
-        a = a.astype(np.float32) / float(info.max)
+        a = a.astype(np.float32) / float(np.iinfo(a.dtype).max)
     else:
         a = a.astype(np.float32)
         finite = np.isfinite(a)
@@ -122,15 +121,16 @@ def _fft_filter(image: Array, *, highpass: float, lowpass: float, order: int) ->
         lp = 1.0 / (1.0 + (radius / max(lowpass, eps)) ** (2 * order))
     else:
         lp = np.ones_like(radius)
-    transfer = hp * lp
     spectrum = np.fft.rfft2(padded)
-    filtered = np.fft.irfft2(spectrum * transfer, s=padded.shape).real
+    filtered = np.fft.irfft2(spectrum * (hp * lp), s=padded.shape).real
     return filtered[crop].astype(np.float32)
 
 
 def _homomorphic_normalize(gray: Array, cfg: ScharrFourierConfig) -> Array:
     x = np.log(np.clip(gray, 1e-4, 1.0))
-    illumination = cv2.GaussianBlur(x, (0, 0), cfg.illumination_sigma, borderType=cv2.BORDER_REFLECT101)
+    illumination = cv2.GaussianBlur(
+        x, (0, 0), cfg.illumination_sigma, borderType=cv2.BORDER_REFLECT101
+    )
     detail = x - illumination
     lo, hi = np.percentile(detail, [0.5, 99.5])
     detail = np.clip((detail - lo) / max(float(hi - lo), 1e-6), 0.0, 1.0)
@@ -146,8 +146,12 @@ def _robust_unit(x: Array, q: float = 99.5) -> Array:
 
 
 def _scharr(image: Array) -> tuple[Array, Array]:
-    gx = cv2.Scharr(image, cv2.CV_32F, 1, 0, scale=1.0 / 32.0, borderType=cv2.BORDER_REFLECT101)
-    gy = cv2.Scharr(image, cv2.CV_32F, 0, 1, scale=1.0 / 32.0, borderType=cv2.BORDER_REFLECT101)
+    gx = cv2.Scharr(
+        image, cv2.CV_32F, 1, 0, scale=1.0 / 32.0, borderType=cv2.BORDER_REFLECT101
+    )
+    gy = cv2.Scharr(
+        image, cv2.CV_32F, 0, 1, scale=1.0 / 32.0, borderType=cv2.BORDER_REFLECT101
+    )
     return gx, gy
 
 
@@ -156,11 +160,14 @@ def _nms(response: Array, gx: Array, gy: Array) -> Array:
     norm = np.sqrt(gx * gx + gy * gy) + 1e-12
     dx = gx / norm
     dy = gy / norm
-    yy, xx = np.mgrid[:mag.shape[0], :mag.shape[1]].astype(np.float32)
-    p = cv2.remap(mag, xx + dx, yy + dy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
-    n = cv2.remap(mag, xx - dx, yy - dy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
-    keep = (mag >= p) & (mag >= n)
-    return np.where(keep, mag, 0.0).astype(np.float32)
+    yy, xx = np.mgrid[: mag.shape[0], : mag.shape[1]].astype(np.float32)
+    p = cv2.remap(
+        mag, xx + dx, yy + dy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101
+    )
+    n = cv2.remap(
+        mag, xx - dx, yy - dy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101
+    )
+    return np.where((mag >= p) & (mag >= n), mag, 0.0).astype(np.float32)
 
 
 def _hessian_ridge(image: Array) -> tuple[Array, Array, Array]:
@@ -181,34 +188,52 @@ def _hessian_ridge(image: Array) -> tuple[Array, Array, Array]:
     c = float(np.percentile(nonzero, 90.0)) if nonzero.size else 1.0
     c = max(c, 1e-6)
     beta = 0.45
-    ridge = np.exp(-(rb * rb) / (2.0 * beta * beta)) * (1.0 - np.exp(-(structureness * structureness) / (2.0 * c * c)))
+    ridge = np.exp(-(rb * rb) / (2.0 * beta * beta)) * (
+        1.0 - np.exp(-(structureness * structureness) / (2.0 * c * c))
+    )
     theta_large = 0.5 * np.arctan2(2.0 * gxy, gxx - gyy)
-    major_is_large_alg = small_abs_first
-    theta_major = np.where(major_is_large_alg, theta_large, theta_large + 0.5 * np.pi)
-    nx, ny = np.cos(theta_major), np.sin(theta_major)
-    return ridge.astype(np.float32), nx.astype(np.float32), ny.astype(np.float32)
+    theta_major = np.where(small_abs_first, theta_large, theta_large + 0.5 * np.pi)
+    return (
+        ridge.astype(np.float32),
+        np.cos(theta_major).astype(np.float32),
+        np.sin(theta_major).astype(np.float32),
+    )
 
 
 def _orientation_coherence(gx: Array, gy: Array, sigma: float = 1.4) -> Array:
-    jxx = cv2.GaussianBlur(gx * gx, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101)
-    jyy = cv2.GaussianBlur(gy * gy, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101)
-    jxy = cv2.GaussianBlur(gx * gy, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101)
+    jxx = cv2.GaussianBlur(
+        gx * gx, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101
+    )
+    jyy = cv2.GaussianBlur(
+        gy * gy, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101
+    )
+    jxy = cv2.GaussianBlur(
+        gx * gy, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101
+    )
     delta = np.sqrt(np.maximum((jxx - jyy) ** 2 + 4.0 * jxy * jxy, 0.0))
     return np.clip(delta / (jxx + jyy + 1e-8), 0.0, 1.0).astype(np.float32)
 
 
 def _hysteresis(prob: Array, low: float, high: float) -> Array:
+    """Keep 8-connected weak components containing at least one strong pixel.
+
+    This is exactly equivalent to repeatedly dilating strong pixels through the
+    weak mask, but it completes in one connected-component pass rather than a
+    number of full-image iterations proportional to the component diameter.
+    """
     if not (0.0 <= low <= high <= 1.0):
         raise ValueError("Thresholds must satisfy 0 <= low <= high <= 1")
     weak = prob >= low
-    current = prob >= high
-    structure = np.ones((3, 3), dtype=bool)
-    while True:
-        grown = weak & ndimage.binary_dilation(current, structure=structure)
-        if np.array_equal(grown, current):
-            break
-        current = grown
-    return current
+    strong = prob >= high
+    if not np.any(strong):
+        return np.zeros_like(weak, dtype=bool)
+    labels, count = ndimage.label(
+        weak, structure=np.ones((3, 3), dtype=np.uint8)
+    )
+    keep = np.zeros(count + 1, dtype=bool)
+    keep[np.unique(labels[strong])] = True
+    keep[0] = False
+    return keep[labels]
 
 
 def _thin(binary: Array) -> Array:
@@ -248,7 +273,14 @@ def _thin(binary: Array) -> Array:
             else:
                 c3 = (p2 * p4 * p8) == 0
                 c4 = (p2 * p6 * p8) == 0
-            remove = (img == 1) & (neighbors >= 2) & (neighbors <= 6) & (transitions == 1) & c3 & c4
+            remove = (
+                (img == 1)
+                & (neighbors >= 2)
+                & (neighbors <= 6)
+                & (transitions == 1)
+                & c3
+                & c4
+            )
             remove[[0, -1], :] = False
             remove[:, [0, -1]] = False
             if np.any(remove):
@@ -257,9 +289,18 @@ def _thin(binary: Array) -> Array:
     return img.astype(bool)
 
 
-def _direct_fourier_scharr(image: Array, cfg: ScharrFourierConfig) -> tuple[Array, Array]:
-    filtered = _fft_filter(image, highpass=cfg.fft_highpass, lowpass=cfg.fft_lowpass, order=cfg.fft_order)
-    filtered = cv2.GaussianBlur(filtered, (0, 0), 1.0, borderType=cv2.BORDER_REFLECT101)
+def _direct_fourier_scharr(
+    image: Array, cfg: ScharrFourierConfig
+) -> tuple[Array, Array]:
+    filtered = _fft_filter(
+        image,
+        highpass=cfg.fft_highpass,
+        lowpass=cfg.fft_lowpass,
+        order=cfg.fft_order,
+    )
+    filtered = cv2.GaussianBlur(
+        filtered, (0, 0), 1.0, borderType=cv2.BORDER_REFLECT101
+    )
     gx, gy = _scharr(filtered)
     raw = _nms(np.hypot(gx, gy), gx, gy) if cfg.nms else np.hypot(gx, gy)
     return raw.astype(np.float32), _robust_unit(raw, 99.7)
@@ -269,19 +310,34 @@ def _adaptive_hysteresis(probability: Array, cfg: ScharrFourierConfig) -> Array:
     scaled = np.clip(probability * 255.0, 0, 255).astype(np.uint8)
     if not np.any(scaled):
         return np.zeros_like(probability, dtype=bool)
-    threshold, _ = cv2.threshold(scaled, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    high = float(np.clip(cfg.adaptive_high_scale * threshold / 255.0, cfg.adaptive_high_min, cfg.adaptive_high_max))
+    threshold, _ = cv2.threshold(
+        scaled, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+    )
+    high = float(
+        np.clip(
+            cfg.adaptive_high_scale * threshold / 255.0,
+            cfg.adaptive_high_min,
+            cfg.adaptive_high_max,
+        )
+    )
     low = float(np.clip(cfg.adaptive_low_ratio * high, 0.0, high))
     return _hysteresis(probability, low, high)
 
 
-def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> LineResult:
+def detect_lines(
+    image: Array, config: ScharrFourierConfig | None = None
+) -> LineResult:
     cfg = config or ScharrFourierConfig()
     if len(cfg.scales) != len(cfg.scale_weights):
         raise ValueError("scales and scale_weights must have equal length")
     gray, opponents = _gray_and_opponent(image)
     base = _homomorphic_normalize(gray, cfg)
-    base = _fft_filter(base, highpass=cfg.fft_highpass, lowpass=cfg.fft_lowpass, order=cfg.fft_order)
+    base = _fft_filter(
+        base,
+        highpass=cfg.fft_highpass,
+        lowpass=cfg.fft_lowpass,
+        order=cfg.fft_order,
+    )
 
     edge_acc = np.zeros_like(gray, dtype=np.float32)
     ridge_acc = np.zeros_like(gray, dtype=np.float32)
@@ -291,7 +347,9 @@ def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> Lin
     weight_sum = 0.0
 
     for sigma, weight in zip(cfg.scales, cfg.scale_weights):
-        smooth = cv2.GaussianBlur(base, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101)
+        smooth = cv2.GaussianBlur(
+            base, (0, 0), sigma, borderType=cv2.BORDER_REFLECT101
+        )
         gx, gy = _scharr(smooth)
         mag = np.hypot(gx, gy)
         coherence = _orientation_coherence(gx, gy, sigma=max(0.8, sigma))
@@ -311,8 +369,17 @@ def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> Lin
     if opponents and cfg.color_weight > 0:
         chroma = np.zeros_like(gray, dtype=np.float32)
         for channel in opponents:
-            filtered = _fft_filter(channel, highpass=cfg.fft_highpass, lowpass=cfg.fft_lowpass, order=cfg.fft_order)
-            gx, gy = _scharr(cv2.GaussianBlur(filtered, (0, 0), 1.0, borderType=cv2.BORDER_REFLECT101))
+            filtered = _fft_filter(
+                channel,
+                highpass=cfg.fft_highpass,
+                lowpass=cfg.fft_lowpass,
+                order=cfg.fft_order,
+            )
+            gx, gy = _scharr(
+                cv2.GaussianBlur(
+                    filtered, (0, 0), 1.0, borderType=cv2.BORDER_REFLECT101
+                )
+            )
             response = np.hypot(gx, gy)
             if cfg.nms:
                 response = _nms(response, gx, gy)
@@ -327,14 +394,28 @@ def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> Lin
     fusion = 1.0 - (1.0 - e) * (1.0 - r)
     fusion *= 0.78 + 0.22 * np.sqrt(np.clip(coherence_acc, 0.0, 1.0))
     fusion = _robust_unit(fusion, 99.7)
-    local_mean = cv2.GaussianBlur(fusion, (0, 0), cfg.local_contrast_sigma, borderType=cv2.BORDER_REFLECT101)
-    local_sq = cv2.GaussianBlur(fusion * fusion, (0, 0), cfg.local_contrast_sigma, borderType=cv2.BORDER_REFLECT101)
+    local_mean = cv2.GaussianBlur(
+        fusion, (0, 0), cfg.local_contrast_sigma, borderType=cv2.BORDER_REFLECT101
+    )
+    local_sq = cv2.GaussianBlur(
+        fusion * fusion,
+        (0, 0),
+        cfg.local_contrast_sigma,
+        borderType=cv2.BORDER_REFLECT101,
+    )
     local_std = np.sqrt(np.maximum(local_sq - local_mean * local_mean, 0.0))
-    fusion = _robust_unit(np.maximum(fusion - 0.45 * local_mean, 0.0) / (0.18 + 0.65 * local_std), 99.7)
+    fusion = _robust_unit(
+        np.maximum(fusion - 0.45 * local_mean, 0.0) / (0.18 + 0.65 * local_std),
+        99.7,
+    )
 
     _, gray_anchor = _direct_fourier_scharr(gray, cfg)
-    _, homomorphic_anchor = _direct_fourier_scharr(_homomorphic_normalize(gray, cfg), cfg)
-    anchor = np.maximum(gray_anchor, cfg.homomorphic_anchor_weight * homomorphic_anchor)
+    _, homomorphic_anchor = _direct_fourier_scharr(
+        _homomorphic_normalize(gray, cfg), cfg
+    )
+    anchor = np.maximum(
+        gray_anchor, cfg.homomorphic_anchor_weight * homomorphic_anchor
+    )
 
     chroma_anchor = np.zeros_like(gray, dtype=np.float32)
     chroma_binary = np.zeros_like(gray, dtype=bool)
@@ -342,12 +423,20 @@ def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> Lin
         for channel in opponents:
             raw_chroma, normalized_chroma = _direct_fourier_scharr(channel, cfg)
             nonzero = raw_chroma[raw_chroma > 0.0]
-            global_strength = float(np.percentile(nonzero, 99.7)) if nonzero.size else 0.0
+            global_strength = (
+                float(np.percentile(nonzero, 99.7)) if nonzero.size else 0.0
+            )
             if global_strength >= cfg.chroma_global_threshold:
-                gated = np.where(raw_chroma >= cfg.chroma_absolute_threshold, normalized_chroma, 0.0)
+                gated = np.where(
+                    raw_chroma >= cfg.chroma_absolute_threshold,
+                    normalized_chroma,
+                    0.0,
+                )
                 chroma_anchor = np.maximum(chroma_anchor, gated)
                 if cfg.adaptive_threshold:
-                    chroma_binary |= _adaptive_hysteresis(normalized_chroma, cfg) & (raw_chroma >= cfg.chroma_absolute_threshold)
+                    chroma_binary |= _adaptive_hysteresis(
+                        normalized_chroma, cfg
+                    ) & (raw_chroma >= cfg.chroma_absolute_threshold)
         anchor = np.maximum(anchor, chroma_anchor)
     anchor = _robust_unit(anchor, 99.7)
 
@@ -369,9 +458,18 @@ def detect_lines(image: Array, config: ScharrFourierConfig | None = None) -> Lin
         raise ValueError(f"Unsupported mode: {cfg.mode}")
     if cfg.close_radius > 0:
         k = 2 * cfg.close_radius + 1
-        binary = cv2.morphologyEx(binary.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((k, k), np.uint8)) > 0
+        binary = (
+            cv2.morphologyEx(
+                binary.astype(np.uint8),
+                cv2.MORPH_CLOSE,
+                np.ones((k, k), np.uint8),
+            )
+            > 0
+        )
     if cfg.min_component > 1:
-        labels, count = ndimage.label(binary, structure=np.ones((3, 3), dtype=np.uint8))
+        labels, _ = ndimage.label(
+            binary, structure=np.ones((3, 3), dtype=np.uint8)
+        )
         sizes = np.bincount(labels.ravel())
         keep = sizes >= cfg.min_component
         keep[0] = False
