@@ -3,7 +3,7 @@ name: apply-readme-showcase
 on:
   push:
     paths:
-      - assets/showcase_payload.b64
+      - assets/showcase_payload.ready
   workflow_dispatch:
 
 permissions:
@@ -20,18 +20,21 @@ jobs:
         run: |
           python - <<'PY'
           import base64, pathlib, zipfile
-          payload = pathlib.Path('assets/showcase_payload.b64')
+          parts = sorted(pathlib.Path('assets').glob('showcase_payload.part*'))
+          if not parts:
+              raise SystemExit('No showcase payload parts found')
+          encoded = ''.join(part.read_text().strip() for part in parts)
           archive = pathlib.Path('/tmp/showcase_payload.zip')
-          archive.write_bytes(base64.b64decode(payload.read_text().strip()))
+          archive.write_bytes(base64.b64decode(encoded))
           with zipfile.ZipFile(archive) as z:
               z.extractall('.')
           PY
-          rm -f assets/showcase_payload.b64 docs/showcase/README.txt
+          rm -f assets/showcase_payload.part* assets/showcase_payload.ready docs/showcase/README.txt
       - name: Commit showcase gallery
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/showcase .github/workflows/apply-showcase.yml assets/showcase_payload.b64 || true
+          git add -A README.md docs/showcase assets .github/workflows/apply-showcase.yml
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
